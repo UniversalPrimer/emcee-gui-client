@@ -1,0 +1,5 @@
+Bindings needed:
+
+python-qt4
+python-poppler
+python-gtk2

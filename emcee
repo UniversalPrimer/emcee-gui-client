@@ -1,0 +1,29 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# core library
+import sys
+import pprint
+
+# addon libraries
+from PyQt4.QtCore import *
+from PyQt4.QtGui import *
+
+# local imports
+import gui
+import presentation
+
+__version__ = "0.1"
+
+app = QApplication(sys.argv)
+
+print "Number of screens: %d" % app.desktop().numScreens()
+print "Virtual desktop: %s" % str(app.desktop().isVirtualDesktop())
+s = app.desktop().screenGeometry()
+print "Display size: %dx%d" % (s.right()+1,s.bottom()+1)
+
+w = gui.MainWindow()
+w.show()
+
+sys.exit(app.exec_())
+
