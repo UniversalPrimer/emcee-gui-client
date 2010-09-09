@@ -12,7 +12,6 @@ class Presentation(QObject):
     def __init__(self,filename=None):
         QObject.__init__(self)
 
-        self.sources = []
         self.slides = []
 
         self.defaultSlide = Slide(Source(None,"application/x-blank-slide"),0)
@@ -23,8 +22,8 @@ class Presentation(QObject):
         self.forclass = ""
         self.organization = ""
         self.saveneeded = True
-        self.currentindex = 0
-        self.nextindex = 0
+        self.currentindex = -1
+        self.nextindex = -1
 
         if filename:
             self.filename = filename
@@ -39,7 +38,6 @@ class Presentation(QObject):
         self.saveneeded = False
         
     def addSource(self,source):
-        self.sources.append(source)
         for i in range(0,source.numSlides()):
             self.addSlide(source.getSlide(i))
         
@@ -47,6 +45,22 @@ class Presentation(QObject):
         self.slides.append(slide)
         self.emit(SIGNAL("changed()"))
         self.setSaveNeeded()
+
+    def nextSlide(self):
+        self.currentindex = self.nextindex
+        if self.nextindex == len(self.slides)-1:
+            self.nextindex = -2
+        else:
+            self.nextindex += 1
+        self.emit(SIGNAL("updateslides()"))
+
+    def previousSlide(self):
+        self.nextindex = self.currentindex
+        if self.currentindex <= 0:
+            self.currentindex = -1
+        else:
+            self.currentindex -= 1
+        self.emit(SIGNAL("updateslides()"))
 
     def removeSlide(self,index):
         if len(self.slides) > index:

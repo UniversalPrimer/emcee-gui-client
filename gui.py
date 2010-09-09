@@ -68,9 +68,11 @@ class MainWindow(QMainWindow):
              source = presentation.Source(None,plugin)
              self.presentation.addSource(source)
 
-    def removecontent(self):
-        self.presentation.removeSlide(self.presentation.nextindex)
+    def nextslide(self):
+        self.presentation.nextSlide()
 
+    def prevslide(self):
+        self.presentation.previousSlide()
 
     # menubars, status and toolbars
 
@@ -99,6 +101,7 @@ class MainWindow(QMainWindow):
       
     def __createToolbar(self):
         self.toolbar = QToolBar()
+        self.toolbar.setIconSize(QSize(32,32))
         self.toolbar.setVisible(False)
         self.toolbar.setMovable(False)
 
@@ -116,19 +119,29 @@ class MainWindow(QMainWindow):
             addsourcemenu.addAction(action)
 
         addsource.setMenu(addsourcemenu)
-        
-        rmsource = QToolButton()
-        rmsource.setIcon(QIcon("icons/list-remove.svg"))
-        self.connect(rmsource,SIGNAL("clicked()"),self.removecontent)
 
         forwardbtn = QToolButton()
         forwardbtn.setIcon(QIcon("icons/go-next.svg"))
+        self.connect(forwardbtn,SIGNAL("clicked()"),self.nextslide)
         
         backbtn = QToolButton()
         backbtn.setIcon(QIcon("icons/go-previous.svg"))
+        self.connect(backbtn,SIGNAL("clicked()"),self.prevslide)
+
+        bcast = QToolButton()
+        bcast.setIcon(QIcon("icons/broadcast.svg"))
+
+        mic = QToolButton()
+        mic.setIcon(QIcon("icons/microphone.svg"))
+
+        cam = QToolButton()
+        cam.setIcon(QIcon("icons/camera-video.svg"))
         
         self.toolbar.addWidget(addsource)
-        self.toolbar.addWidget(rmsource)
+        self.toolbar.addSeparator()
+        self.toolbar.addWidget(bcast)
+        self.toolbar.addWidget(mic)
+        self.toolbar.addWidget(cam)
         self.toolbar.addSeparator()
         self.toolbar.addWidget(backbtn)
         self.toolbar.addWidget(forwardbtn)

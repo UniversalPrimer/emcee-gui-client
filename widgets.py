@@ -10,9 +10,22 @@ class LoadPresentationWidget(QWidget):
     def __init__(self,parent):
         QWidget.__init__(self,parent)
         self.parent = parent
-        loadlocalbtn = QPushButton(QIcon("icons/document-open.svg"),"Open file")
-        loadserverbtn = QPushButton(QIcon("icons/document-remote-open.svg"),"Open from server")
-        loadnewbtn = QPushButton(QIcon("icons/document-new.svg"),"New file")        
+
+        loadlocalbtn = QPushButton()
+        loadlocalbtn.setStatusTip("Open file")
+        loadlocalbtn.setIcon(QIcon("icons/document-open.svg"))
+        loadlocalbtn.setIconSize(QSize(64,64))
+        loadlocalbtn.setFlat(True)
+        loadserverbtn = QPushButton()
+        loadserverbtn.setStatusTip("Open from server")
+        loadserverbtn.setIcon(QIcon("icons/document-remote-open.svg"))
+        loadserverbtn.setIconSize(QSize(64,64))
+        loadserverbtn.setFlat(True)
+        loadnewbtn = QPushButton()        
+        loadnewbtn.setStatusTip("New file")
+        loadnewbtn.setIcon(QIcon("icons/document-new.svg"))
+        loadnewbtn.setIconSize(QSize(64,64))
+        loadnewbtn.setFlat(True)
 
         hbox = QHBoxLayout()
         hbox.addStretch(1)
@@ -114,7 +127,10 @@ class PresentationWidget(QWidget):
         layout = QGridLayout()
         layout.addWidget(splitter,0,0)
         self.setLayout(layout)
-        
+
+    def setCurrentSlide(self,slide):
+        self.currentSlide.setSlide(slide)        
+
     def setNextSlide(self,slide):
         self.nextSlide.setSlide(slide)
 
@@ -151,6 +167,7 @@ class SlideWidget(QWidget):
         self.layout.removeWidget(self.slide)
         self.slide = slide.asWidget()
         self.layout.addWidget(self.slide)
+
         
     
 class SlideOverviewWidget(QWidget):
@@ -167,8 +184,11 @@ class SlideOverviewWidget(QWidget):
         self.setLayout(layout)
 
         self.connect(self.parent.parent.presentation,SIGNAL("changed()"),self.update)
+        self.connect(self.parent.parent.presentation,SIGNAL("updateslides()"),self.updateslides)
         self.connect(self.list,SIGNAL("itemSelectionChanged()"),self.changed)
         self.connect(self.list,SIGNAL("listChanged()"),self.reordered)
+        self.connect(self.list,SIGNAL("removeItem(int)"),self.parent.parent.presentation.removeSlide)
+
 
     def update(self):
         index = self.list.currentRow()
@@ -192,16 +212,26 @@ class SlideOverviewWidget(QWidget):
 
     def changed(self):
         n = len(self.parent.parent.presentation.slides)
-
         if  n > 0:
-            if n-1 < self.list.currentRow():
-                self.list.setCurrentRow(n-1)
-            else:
                 self.parent.parent.presentation.nextindex = self.list.currentRow()
-                slide = self.list.currentItem().data(Qt.UserRole).toPyObject()
-                self.parent.setNextSlide(slide)            
+                item = self.list.currentItem()
+                if item:
+                    slide = item.data(Qt.UserRole).toPyObject()
+                    self.parent.setNextSlide(slide)            
         else:
             self.parent.setNextSlide(self.parent.parent.presentation.defaultSlide)
+
+    def updateslides(self):
+        if self.parent.parent.presentation.slides:
+            if self.parent.parent.presentation.currentindex > -1:
+                self.parent.setCurrentSlide(self.parent.parent.presentation.slides[self.parent.parent.presentation.currentindex])
+            else:
+                self.parent.setCurrentSlide(self.parent.parent.presentation.defaultSlide)
+            if self.parent.parent.presentation.nextindex > -1:
+                self.parent.setNextSlide(self.parent.parent.presentation.slides[self.parent.parent.presentation.nextindex])
+            else:
+                self.parent.setNextSlide(self.parent.parent.presentation.defaultSlide)
+            self.list.setCurrentRow(self.parent.parent.presentation.nextindex)
 
 # Subclasses for quirks
 
@@ -216,4 +246,18 @@ class DragDropListWidget(QListWidget):
             self.emit(SIGNAL("listChanged()"))
         return False 
 
-        
+    def contextMenuEvent(self,s):
+        item = self.itemAt(s.pos())
+        if item:
+            i = item.data(Qt.UserRole).toPyObject()
+            menu = QMenu(i.getTitle(),self)
+            action = QAction(self)
+            action.setText("Remove slide")
+            action.setIcon(QIcon("icons/list-remove.svg"))
+            self.connect(action,SIGNAL("triggered()"),lambda x=item: self.itemRemoved(x)) 
+            menu.addAction(action)
+            menu.exec_(s.globalPos())
+            
+    def itemRemoved(self,item):
+        self.emit(SIGNAL("removeItem(int)"),self.row(item))
+
