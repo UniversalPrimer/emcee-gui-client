@@ -9,21 +9,14 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
 # local imports
-import gui
-import presentation
+import controller
 
 __version__ = "0.1"
 
 app = QApplication(sys.argv)
 
-print "Number of screens: %d" % app.desktop().numScreens()
-print "Virtual desktop: %s" % str(app.desktop().isVirtualDesktop())
-s = app.desktop().screenGeometry()
-print "Display size: %dx%d" % (s.right()+1,s.bottom()+1)
+control = controller.Controller()
+control.start()
 
-w = gui.MainWindow()
-w.show()
-r = app.exec_()
-print r
-sys.exit(r)
+sys.exit(app.exec_())
 # if it segfaults, blame the bindings, fixed in 4.7.4 i hope

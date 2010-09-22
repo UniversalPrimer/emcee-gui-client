@@ -1,10 +1,10 @@
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
-class BlankWidget(QWidget):
+class widget(QWidget):
 
     def __init__(self,container=None,index=0):
-        super(BlankWidget,self).__init__()
+        super(widget,self).__init__()
         self.index = index
         self.aspect = 4/float(3)     
       
@@ -36,7 +36,7 @@ class BlankWidget(QWidget):
             
         return QSize(width,height)
         
-class BlankIcon(QIcon):
+class icon(QIcon):
 
       def __init__(self,container,index=0,width=128,height=96):       
         image = QPixmap(width,height)
@@ -44,7 +44,7 @@ class BlankIcon(QIcon):
         QIcon.__init__(self,image)
         
 
-class BlankContainer:
+class container:
 
     def __init__(self,reference=None):
         pass
@@ -56,12 +56,7 @@ class BlankContainer:
         return "Blank"
 
 
-plugin_info = {
-    'type': 'content', 
-    'mimetype': 'application/x-blank-slide',
-    'source': 'internal', 
-    'name': 'Blank Slide',
-    'widget': BlankWidget,
-    'container': BlankContainer,
-    'icon': BlankIcon
-    }
+plugintype = 'content' 
+mimetype   = 'application/x-blank-slide'
+name       = 'Blank Slide'
+source     = 'internal' 

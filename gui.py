@@ -1,105 +1,54 @@
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
-import sys
-import os
-
-import widgets
-import presentation
 import plugins
+
+##########################################################
+# The Main Window 
+##########################################################
 
 class MainWindow(QMainWindow):
 
-    def __init__(self, parent=None):
-        QMainWindow.__init__(self,parent)
+    def __init__(self, controller):
+        QMainWindow.__init__(self)
+        self.controller = controller
+
         self.setWindowIcon(QIcon("icons/presentation.svg"))
         
         # setup the window
-        self.__createStatus()
-        self.__createMenus()
-        self.__createToolbar()
-        
-        self.setCentralWidget(widgets.LoadPresentationWidget(self))
+        self.createStatus()
+        self.createMenus()
+        self.createToolbar()
 
-        # start centered and set minimum size
+        # start centered and set minimum size  
         self.center()
-        self.setMinimumSize(QSize(640,480))
-        self.presentation = None
-        
-
-    # application logic
-
-    def new(self):
-        self.setCentralWidget(widgets.NewPresentationWidget(self))
-
-    def pclose(self):
-        if self.presentation:
-            print "Todo: Ask for save"
-        self.toolbar.setVisible(False)
-        self.setCentralWidget(widgets.LoadPresentationWidget(self))
-
-    def open(self):
-        print "NYI: File->Open"
-
-    def openremote(self):
-        print "NYI: File->Open Remote"
-
-
-    def openpresentation(self,p):
-        self.presentation = p
-        self.setTitle(p.title)
-        self.setCentralWidget(widgets.PresentationWidget(self))
-        self.toolbar.setVisible(True)
-
-    def save(self):
-        print "NYI: File->Save"
-
-    def saveas(self):
-        print "NYI: File->Save As"
-                
-    def addcontent(self,plugin):
-        p = plugins.mimehandlers[plugin]
-        if p.plugin_info["source"] == "file":
-            filename = QFileDialog.getOpenFileName(self, self.tr("Select file"), os.getcwd(), "%s (*.%s)" % (p.plugin_info["name"], p.plugin_info["filetype"]))
-            if filename:
-                source = presentation.Source(str(filename),plugin)
-                self.presentation.addSource(source)
-        elif p.plugin_info["source"] == "internal":
-             source = presentation.Source(None,plugin)
-             self.presentation.addSource(source)
-
-    def nextslide(self):
-        self.presentation.nextSlide()
-
-    def prevslide(self):
-        self.presentation.previousSlide()
+        self.setMinimumSize(QSize(640,480)) 
 
     # menubars, status and toolbars
-
-    def __createStatus(self):
+    def createStatus(self):
         self.status = self.statusBar()
         self.status.setSizeGripEnabled(True)
         self.status.showMessage("Ready", 5000)
 
-    def __createMenus(self):
-        # menubar
+    def createMenus(self):
+
         self.menu = self.menuBar()
         menufile = self.menu.addMenu(self.tr("&File"))
         menuedit = self.menu.addMenu(self.tr("&Edit"))
         menuview = self.menu.addMenu(self.tr("&View"))
         menutools = self.menu.addMenu(self.tr("&Tools"))
 
-        filenew = self.createAction(self.tr("&New"), self.new, QKeySequence.New, None, self.tr("New presentation")) 
-        fileopen = self.createAction(self.tr("&Open..."), self.open, QKeySequence.Open, None, self.tr("Open presentation"))
-        fileopenremote = self.createAction(self.tr("Open &Remote..."), self.openremote, "Ctrl+R", None, self.tr("Open presentation from a server")) 
-        filesave = self.createAction(self.tr("&Save"), self.save, QKeySequence.Save, None, self.tr("Save the presentation"))
-        filesaveas = self.createAction(self.tr("Save &As..."), self.saveas, QKeySequence.SaveAs, None, self.tr("Save the presentation to a new file"))
-        fileclose = self.createAction(self.tr("&Close"), self.pclose, QKeySequence.Close, None, self.tr("Close the presentation"))
-        filequit = self.createAction(self.tr("&Quit"), self.close, "Ctrl+Q", None, self.tr("Close the program"))
+        filenew = self.createAction(self.tr("&New"), self.controller.newPresentation, QKeySequence.New, None, self.tr("New presentation")) 
+        fileopen = self.createAction(self.tr("&Open..."), self.controller.openPresentation, QKeySequence.Open, None, self.tr("Open presentation"))
+        fileopenremote = self.createAction(self.tr("Open &Remote..."), self.controller.openRemotePresentation, "Ctrl+R", None, self.tr("Open presentation from a server")) 
+        filesave = self.createAction(self.tr("&Save"), self.controller.savePresentation, QKeySequence.Save, None, self.tr("Save the presentation"))
+        filesaveas = self.createAction(self.tr("Save &As..."), self.controller.saveAsPresentation, QKeySequence.SaveAs, None, self.tr("Save the presentation to a new file"))
+        fileclose = self.createAction(self.tr("&Close"), self.controller.closePresentation, QKeySequence.Close, None, self.tr("Close the presentation"))
+        filequit = self.createAction(self.tr("&Quit"), self.controller.quitApplication, "Ctrl+Q", None, self.tr("Close the program"))
 
         self.addActions(menufile,(filenew,fileopen,fileopenremote,None,filesave,filesaveas,None,fileclose,filequit))
       
-    def __createToolbar(self):
+    def createToolbar(self):
         self.toolbar = QToolBar()
         self.toolbar.setIconSize(QSize(32,32))
         self.toolbar.setVisible(False)
@@ -108,25 +57,25 @@ class MainWindow(QMainWindow):
         addsource = QToolButton()
         addsource.setIcon(QIcon("icons/list-add.svg"))
         addsource.setPopupMode(QToolButton.InstantPopup)
-        
+
         addsourcemenu = QMenu(self)
         
         for mimetype in plugins.mimehandlers.iterkeys():
             plugin = plugins.mimehandlers[mimetype]
             action = QAction(self)
-            action.setText(plugin.plugin_info["name"])
-            self.connect(action,SIGNAL("triggered()"),lambda who=mimetype: self.addcontent(who))
+            action.setText(plugin.name)
+            self.connect(action,SIGNAL("triggered()"),lambda who=mimetype: self.controller.addSlide(who))
             addsourcemenu.addAction(action)
 
         addsource.setMenu(addsourcemenu)
 
         forwardbtn = QToolButton()
         forwardbtn.setIcon(QIcon("icons/go-next.svg"))
-        self.connect(forwardbtn,SIGNAL("clicked()"),self.nextslide)
+        self.connect(forwardbtn,SIGNAL("clicked()"),self.controller.nextSlide)
         
         backbtn = QToolButton()
         backbtn.setIcon(QIcon("icons/go-previous.svg"))
-        self.connect(backbtn,SIGNAL("clicked()"),self.prevslide)
+        self.connect(backbtn,SIGNAL("clicked()"),self.controller.previousSlide)
 
         bcast = QToolButton()
         bcast.setIcon(QIcon("icons/broadcast.svg"))
@@ -178,14 +127,249 @@ class MainWindow(QMainWindow):
         size =  self.geometry()
         self.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
         
-    def setTitle(self,name):
+    def setTitle(self, name):
         self.setWindowTitle(self.tr("emcee") + " - " + name)
 
+    def showToolbar(self, state=True):
+        self.toolbar.setVisible(state)
+
+
+class BeamWindow(QWidget):
+
+    def __init__(self, controller):
+        QWidget.__init__(self)
+    
+
+##########################################################
+# Widget: Loading a presentation (for application startup
+#         and if the current presentation was closed)
+##########################################################
+
+class LoadPresentationWidget(QWidget):
+
+    def __init__(self, controller):
+        QWidget.__init__(self)
+        self.controller = controller
+
+        loadlocalbtn = QPushButton()
+        loadlocalbtn.setStatusTip("Open file")
+        loadlocalbtn.setIcon(QIcon("icons/document-open.svg"))
+        loadlocalbtn.setIconSize(QSize(64,64))
+        loadlocalbtn.setFlat(True)
+
+        loadserverbtn = QPushButton()
+        loadserverbtn.setStatusTip("Open from server")
+        loadserverbtn.setIcon(QIcon("icons/document-remote-open.svg"))
+        loadserverbtn.setIconSize(QSize(64,64))
+        loadserverbtn.setFlat(True)
+
+        loadnewbtn = QPushButton()        
+        loadnewbtn.setStatusTip("New file")
+        loadnewbtn.setIcon(QIcon("icons/document-new.svg"))
+        loadnewbtn.setIconSize(QSize(64,64))
+        loadnewbtn.setFlat(True)
+
+        hbox = QHBoxLayout()
+        hbox.addStretch(1)
+        hbox.addWidget(loadlocalbtn)
+        hbox.addWidget(loadserverbtn)
+        hbox.addWidget(loadnewbtn)
+        hbox.addStretch(1)
+
+        vbox = QVBoxLayout()
+        vbox.addStretch(1)
+        vbox.addLayout(hbox)
+        vbox.addStretch(1)
+        self.setLayout(vbox)
+
+        self.connect(loadlocalbtn, SIGNAL("clicked()"), self.controller.openPresentation)
+        self.connect(loadserverbtn, SIGNAL("clicked()"), self.controller.openRemotePresentation)
+        self.connect(loadnewbtn, SIGNAL("clicked()"), self.controller.newPresentation)
+
+
+##########################################################
+# Widget: Metadata for a new presentation
+##########################################################
+
+class NewPresentationWidget(QWidget):
+
+    def __init__(self, controller):
+        QWidget.__init__(self)
+        self.controller = controller
+       
+        self.titlefield = QLineEdit()
+        self.namefield = QLineEdit()
+        self.emailfield = QLineEdit()
+        self.classfield = QComboBox()
+        self.classfield.setEditable(True)
+        self.orgfield = QComboBox()
+        self.orgfield.setEditable(True)
+
+        cancelbtn = QPushButton(self.tr("C&ancel"),self)
+        createbtn = QPushButton(self.tr("C&reate"),self)
+        createbtn.setDefault(True)
+
+        formLayout = QFormLayout()
+        formLayout.addRow(self.tr("&Title:"), self.titlefield)
+        formLayout.addRow(self.tr("Your &Name:"), self.namefield)
+        formLayout.addRow(self.tr("Your &Email:"), self.emailfield)
+        formLayout.addRow(self.tr("&Class:"), self.classfield)
+        formLayout.addRow(self.tr("&Organisation:"), self.orgfield)
+
+        buttonLayout = QHBoxLayout()
+        buttonLayout.addStretch(1)
+        buttonLayout.addWidget(cancelbtn)
+        buttonLayout.addWidget(createbtn)
+
+        vbox = QVBoxLayout()
+        vbox.addWidget(QLabel("<b>" + self.tr("New Presentation") +  "</b>"))
+        vbox.addLayout(formLayout)
+        vbox.addStretch(1)
+        vbox.addLayout(buttonLayout)
+
+        self.setLayout(vbox)
+        self.connect(createbtn, SIGNAL("clicked()"), self.create)
+        self.connect(cancelbtn, SIGNAL("clicked()"), self.controller.closePresentation)
+
+    def create(self):
+        self.controller.createPresentation(self.titlefield.text(),self.namefield.text(),self.emailfield.text(),self.classfield.currentText(),self.orgfield.currentText())
+
+##########################################################
+# Widget: The presenter display
+##########################################################
+
+class PresentationWidget(QWidget):
+
+    def __init__(self, controller):
+        QWidget.__init__(self)
+        self.controller = controller
+               
+        # Main Layout
+        splitter = QSplitter(Qt.Vertical)
+        lowerlayout = QHBoxLayout()
+        upperlayout = QHBoxLayout()
+        upperpart = QWidget()
+        upperpart.setLayout(upperlayout)
+        lowerpart = QWidget()
+        lowerpart.setLayout(lowerlayout)
+        splitter.addWidget(upperpart)
+        splitter.addWidget(lowerpart)
+        splitter.setSizes([1,1])
+
+        # Chat Box
+        chatwidget = QWidget()
+        chatlayout = QVBoxLayout()
+        chatfield = QLineEdit()
+        chatview = QTextEdit()
+        chatlayout.addWidget(chatview)
+        chatlayout.addWidget(chatfield)
+        chatwidget.setLayout(chatlayout)
+
+        # Slide Overview
+        slideoverview = QWidget()
+        slideoverviewlist = DragDropListWidget(self.controller)
+        slideoverviewlist.setIconSize(QSize(64,64))
+        slideoverviewlist.setSelectionMode(QAbstractItemView.SingleSelection)
+        slideoverviewlayout = QGridLayout()
+        slideoverviewlayout.addWidget(slideoverviewlist,0,0)
+        slideoverview.setLayout(slideoverviewlayout)
+
+        # Left and Right Slide
+        self.leftslide = SlideWidget()
+        self.rightslide = SlideWidget()
+                
+        upperlayout.addWidget(self.leftslide)
+        upperlayout.addWidget(self.rightslide)
+        lowerlayout.addWidget(chatwidget)
+        lowerlayout.addWidget(slideoverview)
+        
+        layout = QGridLayout()
+        layout.addWidget(splitter,0,0)
+        self.setLayout(layout)
+
+        self.connect(self.controller.presentation,SIGNAL("changed()"),slideoverviewlist.update)
+        self.connect(self.controller,SIGNAL("updateSlides()"),self.updateSlideView)
+
+    def updateSlideView(self):
+        self.leftslide.setSlide(self.controller.currentslide)
+        self.rightslide.setSlide(self.controller.nextslide)
 
 
 
-            
+##########################################################
+# Widget: A QListWidget that you can drag and 
+#         drop items in
+##########################################################
 
+class DragDropListWidget(QListWidget):
+    def __init__(self, controller):
+        QListWidget.__init__(self)
+        self.controller = controller
+        self.presentation = controller.presentation
+        self.setDragDropMode(self.InternalMove)
+        self.installEventFilter(self)
+        self.connect(self,SIGNAL("itemSelectionChanged()"),self.updateSelection)
+        self.connect(self.controller,SIGNAL("setNextSlide(int)"),self.setrow)
 
+    def eventFilter(self, sender, event):
+        if (event.type() == QEvent.ChildRemoved):
+            self.reorderModel()
+        return False 
+
+    def contextMenuEvent(self, s):
+        item = self.itemAt(s.pos())
+        if item:
+            i = item.data(Qt.UserRole).toPyObject()
+            menu = QMenu(i.getTitle(),self)
+            action = QAction(self)
+            action.setText("Remove slide")
+            action.setIcon(QIcon("icons/list-remove.svg"))
+            self.connect(action,SIGNAL("triggered()"),lambda x=item: self.presentation.removeSlide(self.row(x))) 
+            menu.addAction(action)
+            menu.exec_(s.globalPos())
+
+    def update(self):
+        index = self.currentRow()
+        self.clear()
+        for item in self.presentation.slides:
+            i = QListWidgetItem(item.asIcon(),item.getTitle())
+            i.setData(Qt.UserRole,item)
+            self.addItem(i)
+        if self.count() > 0 and index == -1:
+            index = 0
+        self.setCurrentRow(index)
+
+    def updateSelection(self):
+        self.controller.setNextSlide(self.currentRow())
+
+    def reorderModel(self):
+        slides = []
+        for i in range(0,self.count()):
+            slide = self.item(i).data(Qt.UserRole).toPyObject()
+            slides.append(slide)
+        self.presentation.slides = slides
+        self.presentation.setSaveNeeded()
+
+    def setrow(self,i):
+        self.setCurrentRow(i)
+
+##########################################################
+# Widget: Slide View Widget
+##########################################################
+       
+class SlideWidget(QWidget):
+
+    def __init__(self):
+        QWidget.__init__(self)
+        self.slide = QWidget()
+        self.layout = QHBoxLayout()
+        self.layout.addWidget(self.slide)
+        self.setLayout(self.layout)
+    
+    def setSlide(self, slide):
+        self.slide.hide()
+        self.layout.removeWidget(self.slide)
+        self.slide = slide.asWidget()
+        self.layout.addWidget(self.slide)
 
 

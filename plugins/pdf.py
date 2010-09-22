@@ -9,10 +9,10 @@ import os.path
 # this plugin requires GTK for PDF conversion, it is very bad, 
 # but no stable pure python libraries exist at the moment
 
-class PDFWidget(QWidget):
+class widget(QWidget):
 
     def __init__(self,container,index=0):
-        super(PDFWidget,self).__init__()
+        super(widget,self).__init__()
         self.index = index
         self.page = container.getSlide(index)
         size = self.page.get_size()
@@ -55,7 +55,7 @@ class PDFWidget(QWidget):
             
         return QSize(width,height)
         
-class PDFIcon(QIcon):
+class icon(QIcon):
 
       def __init__(self,container,index=0,width=128,height=128):
         
@@ -80,7 +80,7 @@ class PDFIcon(QIcon):
         QIcon.__init__(self,image)
         
 
-class PDFContainer:
+class container:
 
     def __init__(self,pdffile):
         self.uri = "file://" + pdffile
@@ -103,13 +103,9 @@ class PDFContainer:
         return self.filename + " slide " + str(index+1)
 
 
-plugin_info = {
-    'type': 'content', 
-    'mimetype': 'application/pdf',
-    'source': 'file',
-    'filetype': 'pdf',    
-    'name': 'PDF File',
-    'widget': PDFWidget,
-    'container': PDFContainer,
-    'icon': PDFIcon
-    }
+plugintype = 'content'
+mimetype   = 'application/pdf'
+name       = 'PDF File'
+source     = 'file'
+filetype   = 'pdf'    
+

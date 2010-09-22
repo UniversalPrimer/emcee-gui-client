@@ -11,10 +11,10 @@ for f in os.listdir("plugins/"):
     if f.endswith(".py"):
         module = __import__(f[:-3])
         
-        if module.plugin_info["type"] == "content":
+        if module.plugintype == "content":
             content.append(module)
-            mimehandlers[module.plugin_info["mimetype"]] = module
-        if module.plugin_info["type"] == "pointer":
+            mimehandlers[module.mimetype] = module
+        if module.plugintype == "pointer":
             pointer.append(module)
 
 
