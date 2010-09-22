@@ -134,10 +134,60 @@ class MainWindow(QMainWindow):
         self.toolbar.setVisible(state)
 
 
+##########################################################
+# Window: Beam View, the presentation for a projector
+##########################################################
+
 class BeamWindow(QWidget):
 
     def __init__(self, controller):
         QWidget.__init__(self)
+        self.controller = controller
+        self.slide = SlideWidget()        
+        layout = QGridLayout()
+        layout.setMargin(0)
+        self.slide.layout.setMargin(0)
+        self.setMinimumSize(QSize(400,300))
+        layout.addWidget(self.slide,0,0)
+        self.setLayout(layout)
+        self.showFullScreen()     
+        self.connect(self.controller,SIGNAL("updateSlides()"),self.updateSlideView) 
+        self.testcard = True
+
+
+    def updateSlideView(self):
+        self.slide.setSlide(self.controller.currentslide)
+        self.testcard = False
+
+    def paintEvent(self,arg):
+        painter = QPainter(self)
+
+        if self.testcard :
+            w = self.size().width()/8
+            h = self.size().height()/2
+            painter.fillRect(0*w, 0, w, h, QColor("white"))
+            painter.fillRect(1*w, 0, w, h, QColor("yellow"))
+            painter.fillRect(2*w, 0, w, h, QColor("cyan"))
+            painter.fillRect(3*w, 0, w, h, QColor("lime"))
+            painter.fillRect(4*w, 0, w, h, QColor("magenta"))
+            painter.fillRect(5*w, 0, w, h, QColor("red"))
+            painter.fillRect(6*w, 0, w, h, QColor("blue"))
+            painter.fillRect(7*w, 0, w, h, QColor("black"))
+            painter.fillRect(7*w, h, w, 2*h, QColor("white"))
+            painter.fillRect(6*w, h, w, 2*h, QColor("yellow"))
+            painter.fillRect(5*w, h, w, 2*h, QColor("cyan"))
+            painter.fillRect(4*w, h, w, 2*h, QColor("lime"))
+            painter.fillRect(3*w, h, w, 2*h, QColor("magenta"))
+            painter.fillRect(2*w, h, w, 2*h, QColor("red"))
+            painter.fillRect(1*w, h, w, 2*h, QColor("blue"))
+            painter.fillRect(0*w, h, w, 2*h, QColor("black"))
+            firstpen = QPen(QColor("grey"), 40, Qt.DotLine, Qt.SquareCap, Qt.BevelJoin)
+            painter.setPen(firstpen)
+            painter.drawRect(0,0,w*8,h*2)
+
+
+        else:
+            painter.fillRect(0, 0, self.size().width(), self.size().height(), QColor("black"))
     
 
 ##########################################################

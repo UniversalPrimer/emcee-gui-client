@@ -10,6 +10,8 @@ class Controller(QObject):
     
     def __init__(self):
         QObject.__init__(self)
+
+        self.screens = ScreenController()
         self.mainview = gui.MainWindow(self)
         self.beamview = gui.BeamWindow(self)
         self.presentation = None
@@ -20,12 +22,15 @@ class Controller(QObject):
         self.mainview.setCentralWidget(gui.LoadPresentationWidget(self))
 
     # application
-    def start(self):
+    def start(self): 
+        if self.screens.countScreens() > 1:
+            self.screens.moveToScreen(1,self.beamview)
+            self.beamview.show()
         self.mainview.show()
-        #self.beamview.show()
 
     def quitApplication(self):
         print "QUIT"
+        self.beamview.close()
         self.mainview.close()
 
     # presentations
@@ -108,6 +113,21 @@ class Controller(QObject):
 
 
 
+class ScreenController():
 
+    def __init__(self):
+        self.desktop = QDesktopWidget()
+        self.geometry = []
+        primary = self.desktop.screenGeometry(self.desktop.primaryScreen()).topLeft()
+        for i in range(0,self.desktop.numScreens()):
+            self.geometry.append(self.desktop.screenGeometry(i).topLeft()-primary)
+
+    def moveToScreen(self,screen,widget):
+        widget.move(self.geometry[screen])
+
+    def countScreens(self):
+        return self.desktop.numScreens()
+        
+        
 
 
