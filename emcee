@@ -11,10 +11,11 @@ from PyQt4.QtGui import *
 # local imports
 import controller
 
-__version__ = "0.1"
+__version__ = "$Rev: $"
 
 app = QApplication(sys.argv)
-
+app.setApplicationVersion(__version__)
+app.setApplicationName("emcee")
 control = controller.Controller()
 control.start()
 

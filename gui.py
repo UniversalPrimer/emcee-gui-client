@@ -34,9 +34,7 @@ class MainWindow(QMainWindow):
 
         self.menu = self.menuBar()
         menufile = self.menu.addMenu(self.tr("&File"))
-        menuedit = self.menu.addMenu(self.tr("&Edit"))
         menuview = self.menu.addMenu(self.tr("&View"))
-        menutools = self.menu.addMenu(self.tr("&Tools"))
 
         filenew = self.createAction(self.tr("&New"), self.controller.newPresentation, QKeySequence.New, None, self.tr("New presentation")) 
         fileopen = self.createAction(self.tr("&Open..."), self.controller.openPresentation, QKeySequence.Open, None, self.tr("Open presentation"))
@@ -46,7 +44,10 @@ class MainWindow(QMainWindow):
         fileclose = self.createAction(self.tr("&Close"), self.controller.closePresentation, QKeySequence.Close, None, self.tr("Close the presentation"))
         filequit = self.createAction(self.tr("&Quit"), self.controller.quitApplication, "Ctrl+Q", None, self.tr("Close the program"))
 
+        viewabout = self.createAction(self.tr("&About..."), self.controller.aboutApp)
+
         self.addActions(menufile,(filenew,fileopen,fileopenremote,None,filesave,filesaveas,None,fileclose,filequit))
+        self.addActions(menuview,(viewabout,))
       
     def createToolbar(self):
         self.toolbar = QToolBar()
@@ -94,7 +95,6 @@ class MainWindow(QMainWindow):
         self.toolbar.addSeparator()
         self.toolbar.addWidget(backbtn)
         self.toolbar.addWidget(forwardbtn)
-
         self.addToolBar(self.toolbar)
         
     # helpers
@@ -128,11 +128,16 @@ class MainWindow(QMainWindow):
         self.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
         
     def setTitle(self, name):
-        self.setWindowTitle(self.tr("emcee") + " - " + name)
+        self.setWindowTitle(QApplication.applicationName() + " - " + name)
 
     def showToolbar(self, state=True):
         self.toolbar.setVisible(state)
 
+    def closeEvent(self, event):
+        if self.controller.mainClosed():
+            event.accept()
+        else:
+            event.ignore()
 
 ##########################################################
 # Window: Beam View, the presentation for a projector
@@ -153,6 +158,7 @@ class BeamWindow(QWidget):
         self.showFullScreen()     
         self.connect(self.controller,SIGNAL("updateSlides()"),self.updateSlideView) 
         self.testcard = True
+        self.setWindowTitle(self.tr("Projector Display"))
 
 
     def updateSlideView(self):
@@ -184,8 +190,6 @@ class BeamWindow(QWidget):
             firstpen = QPen(QColor("grey"), 40, Qt.DotLine, Qt.SquareCap, Qt.BevelJoin)
             painter.setPen(firstpen)
             painter.drawRect(0,0,w*8,h*2)
-
-
         else:
             painter.fillRect(0, 0, self.size().width(), self.size().height(), QColor("black"))
     
@@ -335,11 +339,12 @@ class PresentationWidget(QWidget):
         
         layout = QGridLayout()
         layout.addWidget(splitter,0,0)
+        layout.setMargin(0)
         self.setLayout(layout)
 
         self.connect(self.controller.presentation,SIGNAL("changed()"),slideoverviewlist.update)
         self.connect(self.controller,SIGNAL("updateSlides()"),self.updateSlideView)
-
+        
     def updateSlideView(self):
         self.leftslide.setSlide(self.controller.currentslide)
         self.rightslide.setSlide(self.controller.nextslide)

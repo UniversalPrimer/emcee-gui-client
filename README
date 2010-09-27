@@ -1,8 +1,17 @@
 Packages needed:
 
 python-qt4
+python-qt4-phonon
 python-qt4-dev
 libpoppler-qt4-dev
 
-pypoppler from:
+
+
+Get pypoppler from:
 http://pyqt4-extrawidgets.googlecode.com/files/pypoppler-qt4-20962-fixed.tar.gz
+
+Install using: 
+python configure.py
+make
+sudo make install
+

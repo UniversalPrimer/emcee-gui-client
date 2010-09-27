@@ -12,7 +12,6 @@ class widget(QWidget):
         super(widget,self).__init__()
         self.page = container.getSlide(index)
         self.pagesize = self.page.pageSize()
-
         self.aspect = self.pagesize.width()/float(self.pagesize.height())
               
     def paintEvent(self,arg):

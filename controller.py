@@ -21,6 +21,12 @@ class Controller(QObject):
         # setup the main window
         self.mainview.setCentralWidget(gui.LoadPresentationWidget(self))
 
+        # global shortcuts
+        next = QShortcut(QKeySequence("PgDown"),self.mainview)
+        self.connect(next,SIGNAL("activated()"),self.nextSlide)
+        prev = QShortcut(QKeySequence("PgUp"),self.mainview)
+        self.connect(prev,SIGNAL("activated()"),self.previousSlide)
+
     # application
     def start(self): 
         if self.screens.countScreens() > 1:
@@ -29,31 +35,52 @@ class Controller(QObject):
         self.mainview.show()
 
     def quitApplication(self):
-        print "QUIT"
         self.beamview.close()
         self.mainview.close()
+
+    def mainClosed(self):
+        question = QMessageBox.question(self.mainview, self.tr("Application Close"), self.tr("Are you sure to quit?"), QMessageBox.No, QMessageBox.Yes)
+        if question == QMessageBox.Yes:
+            self.beamview.close()
+            return True
+        else:
+            return False
+
+    def aboutApp(self):
+        QMessageBox.about(self.mainview, self.tr("emcee"),self.tr("Qt version: %s\nPyQt version: %s\nApplication version: %s" % (QT_VERSION_STR, PYQT_VERSION_STR, QApplication.applicationVersion())))
 
     # presentations
     def newPresentation(self):
         self.mainview.setCentralWidget(gui.NewPresentationWidget(self))
 
     def closePresentation(self):
-        if self.presentation.saveneeded:
+        if self.presentation and self.presentation.saveneeded:
             print "Todo: Ask for save"
         self.mainview.showToolbar(False)
         self.mainview.setCentralWidget(gui.LoadPresentationWidget(self))
 
     def openPresentation(self):
-        print "NYI: Open"
+        filename = QFileDialog.getOpenFileName(self.mainview, self.tr("Open Presentation"), os.getcwd(), self.tr("emcee Presentation (*.paj)"))
+        if filename:
+            pres = presentation.Presentation(str(filename))
+            self.setPresentation(pres)
+            self.presentation.emit(SIGNAL("changed()"))
 
     def openRemotePresentation(self):
         print "NYI: Remote Open"
 
     def savePresentation(self):
-        print "NYI: Save"
+        if self.presentation:
+            if self.presentation.filename:
+                self.presentation.save()
+            else:
+                self.saveAsPresentation()
 
     def saveAsPresentation(self):
-        print "NYI: Save As"
+        if self.presentation:
+            filename = QFileDialog.getSaveFileName(self.mainview, self.tr("Save Presentation"), os.getcwd() + "/" + self.presentation.suggestedFileName() + ".paj", self.tr("emcee Presentation (*.paj)"))
+            if filename:
+                self.presentation.save(str(filename))
 
     def setPresentation(self,presentation):
         self.presentation = presentation
@@ -66,11 +93,11 @@ class Controller(QObject):
 
     def createPresentation(self,title,name,email,forclass,organization):
         p = presentation.Presentation()
-        p.title = title
-        p.name = name
-        p.email = email
-        p.forclass = forclass
-        p.organization = organization
+        p.title = str(title)
+        p.name = str(name)
+        p.email = str(email)
+        p.forclass = str(forclass)
+        p.organization = str(organization)
         self.setPresentation(p)
 
     # slide control            
@@ -86,14 +113,16 @@ class Controller(QObject):
              self.presentation.addSource(source)
 
     def nextSlide(self):
-        self.setCurrentSlide(self.presentation.nextindex)
-        self.setNextSlide(self.presentation.nextindex+1)
-        self.emit(SIGNAL("setNextSlide(int)"),self.presentation.nextindex)
+        if self.presentation:
+            self.setCurrentSlide(self.presentation.nextindex)
+            self.setNextSlide(self.presentation.nextindex+1)
+            self.emit(SIGNAL("setNextSlide(int)"),self.presentation.nextindex)
 
     def previousSlide(self):
-        self.setNextSlide(self.presentation.currentindex)
-        self.setCurrentSlide(self.presentation.currentindex-1)
-        self.emit(SIGNAL("setNextSlide(int)"),self.presentation.nextindex)
+        if self.presentation:
+            self.setNextSlide(self.presentation.currentindex)
+            self.setCurrentSlide(self.presentation.currentindex-1)
+            self.emit(SIGNAL("setNextSlide(int)"),self.presentation.nextindex)
 
     def setCurrentSlide(self, index):
         if index >= 0 and index < len(self.presentation.slides):
