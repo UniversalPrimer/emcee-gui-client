@@ -5,6 +5,7 @@ import gui
 import os
 import presentation
 import plugins
+import util
 
 class Controller(QObject):
     
@@ -21,11 +22,19 @@ class Controller(QObject):
         # setup the main window
         self.mainview.setCentralWidget(gui.LoadPresentationWidget(self))
 
-        # global shortcuts
-        next = QShortcut(QKeySequence("PgDown"),self.mainview)
-        self.connect(next,SIGNAL("activated()"),self.nextSlide)
-        prev = QShortcut(QKeySequence("PgUp"),self.mainview)
-        self.connect(prev,SIGNAL("activated()"),self.previousSlide)
+        # enable the default pointers
+        self.pointers = {}
+        self.drawingpointers = []
+
+        for pointerplugin in plugins.pointer:
+            pointer = pointerplugin.pointer(self)
+            if pointerplugin.enabledefault:
+                if pointer.enable() and pointerplugin.capabilities.count("draw"):
+                    self.drawingpointers.append(pointer) 
+            self.pointers[pointerplugin] = pointer
+
+        self.drawing = DrawingController(self.drawingpointers,self.beamview)   
+
 
     # application
     def start(self): 
@@ -34,9 +43,11 @@ class Controller(QObject):
             self.beamview.show()
         self.mainview.show()
 
-    def quitApplication(self):
+    def quitApplication(self):        
         self.beamview.close()
         self.mainview.close()
+        for (pointermodule, pointer) in self.pointers.items():
+            pointer.disable()
 
     def mainClosed(self):
         question = QMessageBox.question(self.mainview, self.tr("Application Close"), self.tr("Are you sure to quit?"), QMessageBox.No, QMessageBox.Yes)
@@ -48,6 +59,7 @@ class Controller(QObject):
 
     def aboutApp(self):
         QMessageBox.about(self.mainview, self.tr("emcee"),self.tr("Qt version: %s\nPyQt version: %s\nApplication version: %s" % (QT_VERSION_STR, PYQT_VERSION_STR, QApplication.applicationVersion())))
+
 
     # presentations
     def newPresentation(self):
@@ -131,6 +143,7 @@ class Controller(QObject):
         else:
             self.currentslide = self.presentation.defaultSlide
         self.emit(SIGNAL("updateSlides()"))
+        self.drawing.drawClear()
 
     def setNextSlide(self, index):
         if index >= 0 and index < len(self.presentation.slides):
@@ -139,6 +152,17 @@ class Controller(QObject):
         else:
             self.nextslide = self.presentation.defaultSlide
         self.emit(SIGNAL("updateSlides()"))
+
+    # chat
+    def chatSend(self,chat):
+        self.emit(SIGNAL("chatRecieved(QString)"),chat)
+
+    # broadcast
+    def startBroadcast(self):
+        print "NYI: Start broadcast"
+
+    def endBroadcast(self):
+        print "NYI: End broadcast"
 
 
 
@@ -156,7 +180,54 @@ class ScreenController():
 
     def countScreens(self):
         return self.desktop.numScreens()
-        
+
+class DrawingController(QThread):
+    
+    def __init__(self,pointers,beamview):
+        QThread.__init__(self)
+        self.pointers = pointers
+        self.beamview = beamview
+        self.drawing = False
+        self.points = []
+        self.current = -1
+        self.start()
+
+    def drawBegin(self):
+        self.current += 1
+        self.points.append([])
+        self.points[self.current] = []
+        self.drawing = True
+
+    def drawEnd(self):
+        if self.drawing:
+            self.drawing = False
+
+    def drawClear(self):
+        self.points = []
+        self.current = -1
+        self.beamview.update()
+
+    def run(self):
+        while True:
+            if len(self.pointers):
+                pointerset = False
+                for pointer in self.pointers:
+                    xy = pointer.xy()
+                    if xy:
+                        if self.drawing:
+                            self.points[self.current].append((xy[0],xy[1]))
+                        self.beamview.setPointer(xy[0],xy[1])
+                        pointerset = True
+                        break
+
+                if not pointerset:
+                    self.beamview.clearPointer()
+
+                self.beamview.setPaths(self.points)
+
+                self.msleep(33)
+            else:
+                self.sleep(10)    
         
 
 

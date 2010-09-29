@@ -1,8 +1,16 @@
+# Todo 
+
+- Add editable options for drawing on slides (colors and line thickness)
+- Evaluate Douglas-Peucker vs Vertex reduction
+
+# Installation
+
 Packages needed:
 
 python-qt4
 python-qt4-phonon
 python-qt4-dev
+python-cwiid
 libpoppler-qt4-dev
 
 

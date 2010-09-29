@@ -2,6 +2,7 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
 import plugins
+import util
 
 ##########################################################
 # The Main Window 
@@ -65,7 +66,7 @@ class MainWindow(QMainWindow):
             plugin = plugins.mimehandlers[mimetype]
             action = QAction(self)
             action.setText(plugin.name)
-            self.connect(action,SIGNAL("triggered()"),lambda who=mimetype: self.controller.addSlide(who))
+            self.connect(action,SIGNAL("triggered()"),lambda: self.controller.addSlide(mimetype))
             addsourcemenu.addAction(action)
 
         addsource.setMenu(addsourcemenu)
@@ -80,13 +81,17 @@ class MainWindow(QMainWindow):
 
         bcast = QToolButton()
         bcast.setIcon(QIcon("icons/broadcast.svg"))
+        bcast.setCheckable(True)
+        self.connect(bcast,SIGNAL("clicked()"),lambda: self.controller.startBroadcast() if bcast.isChecked() else self.controller.endBroadcast())
 
         mic = QToolButton()
         mic.setIcon(QIcon("icons/microphone.svg"))
+        mic.setCheckable(True)
 
         cam = QToolButton()
         cam.setIcon(QIcon("icons/camera-video.svg"))
-        
+        cam.setCheckable(True)
+    
         self.toolbar.addWidget(addsource)
         self.toolbar.addSeparator()
         self.toolbar.addWidget(bcast)
@@ -148,7 +153,8 @@ class BeamWindow(QWidget):
     def __init__(self, controller):
         QWidget.__init__(self)
         self.controller = controller
-        self.slide = SlideWidget()        
+        self.overlay = Overlay()
+        self.slide = SlideWidget(self.overlay) 
         layout = QGridLayout()
         layout.setMargin(0)
         self.slide.layout.setMargin(0)
@@ -160,6 +166,33 @@ class BeamWindow(QWidget):
         self.testcard = True
         self.setWindowTitle(self.tr("Projector Display"))
 
+    def setPointer(self,x,y):
+        size = self.overlay.size()
+        x = int(size.width() * (1-x))
+        y = int(size.height() * (1-y))
+        self.overlay.x = x
+        self.overlay.y = y
+        self.overlay.update()
+
+    def clearPointer(self):
+        if not (self.overlay.x == 0 and self.overlay.y == 0):  
+            self.overlay.x = 0
+            self.overlay.y = 0
+            self.overlay.update()
+
+    def setPaths(self,paths):
+        size = self.overlay.size()
+        newpaths = []        
+        for path in paths:
+            if len(path):
+                newpath = []
+                path = util.vertexreduce(path,1/100.)
+                for point in path:
+                    x = int(size.width() * (1-point[0]))
+                    y = int(size.height() * (1-point[1]))
+                    newpath.append(QPoint(x,y))
+                newpaths.append(newpath)
+        self.overlay.paths = newpaths
 
     def updateSlideView(self):
         self.slide.setSlide(self.controller.currentslide)
@@ -192,6 +225,49 @@ class BeamWindow(QWidget):
             painter.drawRect(0,0,w*8,h*2)
         else:
             painter.fillRect(0, 0, self.size().width(), self.size().height(), QColor("black"))
+
+##############################################################
+# Widget: Overlay widget, showing cursor and drawing
+##############################################################
+
+class Overlay(QWidget):
+ 
+    POINTER_RADIUS = 20
+
+    def __init__(self, parent = None):
+        QWidget.__init__(self, parent)
+        palette = QPalette(self.palette())
+        palette.setColor(palette.Background, Qt.transparent)
+        self.setPalette(palette)
+        self.x = 0
+        self.y = 0
+
+        # Set options another place
+        self.pointercolor = QColor(255, 0, 0)
+        self.linecolor = QColor("black")
+        self.linewidth = 10
+
+        self.paths = None
+ 
+    def paintEvent(self, event):
+
+        painter = QPainter()
+        painter.begin(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setPen(QPen(self.linecolor, self.linewidth))
+        painter.setBrush(QBrush(self.pointercolor))
+
+        if self.x and self.y:
+            painter.drawEllipse(QRectF(self.x-Overlay.POINTER_RADIUS, self.y-Overlay.POINTER_RADIUS, 2*Overlay.POINTER_RADIUS, 2*Overlay.POINTER_RADIUS))
+
+        if self.paths:
+            for path in self.paths:
+                pg = QPolygon(path)
+                painter.drawPolyline(pg)
+            
+        painter.end()
+ 
+        
     
 
 ##########################################################
@@ -244,7 +320,7 @@ class LoadPresentationWidget(QWidget):
 ##########################################################
 # Widget: Metadata for a new presentation
 ##########################################################
-
+util.douglaspeucker
 class NewPresentationWidget(QWidget):
 
     def __init__(self, controller):
@@ -344,10 +420,16 @@ class PresentationWidget(QWidget):
 
         self.connect(self.controller.presentation,SIGNAL("changed()"),slideoverviewlist.update)
         self.connect(self.controller,SIGNAL("updateSlides()"),self.updateSlideView)
+        self.connect(chatfield,SIGNAL("returnPressed()"),lambda: self.chatSend(chatfield))
+        self.connect(self.controller,SIGNAL("chatRecieved(QString)"),chatview.append)
         
     def updateSlideView(self):
         self.leftslide.setSlide(self.controller.currentslide)
         self.rightslide.setSlide(self.controller.nextslide)
+
+    def chatSend(self,field):
+        self.controller.chatSend(field.text())
+        field.setText("")
 
 
 
@@ -379,7 +461,7 @@ class DragDropListWidget(QListWidget):
             action = QAction(self)
             action.setText("Remove slide")
             action.setIcon(QIcon("icons/list-remove.svg"))
-            self.connect(action,SIGNAL("triggered()"),lambda x=item: self.presentation.removeSlide(self.row(x))) 
+            self.connect(action,SIGNAL("triggered()"),lambda: self.presentation.removeSlide(self.row(item))) 
             menu.addAction(action)
             menu.exec_(s.globalPos())
 
@@ -414,17 +496,25 @@ class DragDropListWidget(QListWidget):
        
 class SlideWidget(QWidget):
 
-    def __init__(self):
+    def __init__(self,overlay=None):
         QWidget.__init__(self)
+        self.overlay = overlay
         self.slide = QWidget()
         self.layout = QHBoxLayout()
         self.layout.addWidget(self.slide)
-        self.setLayout(self.layout)
+        self.setLayout(self.layout)        
+        if self.overlay:
+            wl = QHBoxLayout()
+            wl.addWidget(self.overlay)
+            self.slide.setLayout(wl)
     
     def setSlide(self, slide):
         self.slide.hide()
         self.layout.removeWidget(self.slide)
         self.slide = slide.asWidget()
         self.layout.addWidget(self.slide)
-
+        if self.overlay:
+            wl = QHBoxLayout()
+            wl.addWidget(self.overlay)
+            self.slide.setLayout(wl)
 

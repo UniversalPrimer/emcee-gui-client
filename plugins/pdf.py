@@ -3,6 +3,7 @@ from PyQt4.QtGui import *
 
 import QtPoppler
 import os.path
+import hashlib
 
 MAGICDPI = 72
 
@@ -13,11 +14,13 @@ class widget(QWidget):
         self.page = container.getSlide(index)
         self.pagesize = self.page.pageSize()
         self.aspect = self.pagesize.width()/float(self.pagesize.height())
+        self.index = index
+        self.cache = container.cache
               
     def paintEvent(self,arg):
+
         owidth = width = self.size().width()
         oheight = height = self.size().height()
-
         if float(width)/float(height) > self.aspect:
             width = int(height*self.aspect)
             scale = width / float(self.pagesize.width())
@@ -25,10 +28,18 @@ class widget(QWidget):
             height = int(width/self.aspect)
             scale = height / float(self.pagesize.height())
     
+        if self.cache.has_key(self.cacheindex(width,height)):
+            image = self.cache[self.cacheindex(width,height)]
+        else:
+            image = self.page.renderToImage(scale*MAGICDPI,scale*MAGICDPI)
+            self.cache[self.cacheindex(width,height)] = image
+
         painter = QPainter(self)
-        image = self.page.renderToImage(scale*MAGICDPI,scale*MAGICDPI)
         painter.drawImage(int((owidth-width)/2),int((oheight-height)/2),image) 
-        
+
+    def cacheindex(self,width,height):
+        return hashlib.sha1(str(width) + "x" + str(height) + "*" + str(self.index)).hexdigest()
+
     def sizeHint(self):
         width = self.size().width()
         height = self.size().height()
@@ -61,6 +72,7 @@ class container:
         self.document.setRenderHint(QtPoppler.Poppler.Document.Antialiasing and QtPoppler.Poppler.Document.TextAntialiasing)
         self.numslides = self.document.numPages()
         size = self.document.page(0).pageSize()
+        self.cache = {}
 
     def numSlides(self):
         return self.numslides
