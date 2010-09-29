@@ -28,10 +28,9 @@ class Controller(QObject):
 
         for pointerplugin in plugins.pointer:
             pointer = pointerplugin.pointer(self)
-            if pointerplugin.enabledefault:
-                if pointer.enable() and pointerplugin.capabilities.count("draw"):
-                    self.drawingpointers.append(pointer) 
             self.pointers[pointerplugin] = pointer
+            if pointerplugin.enabledefault:
+                self.enablePointer(pointerplugin)
 
         self.drawing = DrawingController(self.drawingpointers,self.beamview)   
 
@@ -58,8 +57,10 @@ class Controller(QObject):
             return False
 
     def aboutApp(self):
-        QMessageBox.about(self.mainview, self.tr("emcee"),self.tr("Qt version: %s\nPyQt version: %s\nApplication version: %s" % (QT_VERSION_STR, PYQT_VERSION_STR, QApplication.applicationVersion())))
+        QMessageBox.about(self.mainview, self.tr("emcee"),self.tr("emcee by Christian Panton 2010\n\nQt version: %s\nPyQt version: %s\nApplication version: %s" % (QT_VERSION_STR, PYQT_VERSION_STR, QApplication.applicationVersion())))
 
+    def setStatus(self,message):
+        self.mainview.status.showMessage(message)
 
     # presentations
     def newPresentation(self):
@@ -164,6 +165,13 @@ class Controller(QObject):
     def endBroadcast(self):
         print "NYI: End broadcast"
 
+    # pointers
+    def enablePointer(self,pointerplugin):
+        if self.pointers[pointerplugin].enable() and pointerplugin.capabilities.count("draw"):
+            self.drawingpointers.append(self.pointers[pointerplugin]) 
+
+    def disablePointer(self,pointer):
+        self.pointers[pointer].disable()
 
 
 class ScreenController():

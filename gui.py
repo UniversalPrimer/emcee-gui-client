@@ -36,6 +36,7 @@ class MainWindow(QMainWindow):
         self.menu = self.menuBar()
         menufile = self.menu.addMenu(self.tr("&File"))
         menuview = self.menu.addMenu(self.tr("&View"))
+        menupointers = self.menu.addMenu(self.tr("&Pointers"))
 
         filenew = self.createAction(self.tr("&New"), self.controller.newPresentation, QKeySequence.New, None, self.tr("New presentation")) 
         fileopen = self.createAction(self.tr("&Open..."), self.controller.openPresentation, QKeySequence.Open, None, self.tr("Open presentation"))
@@ -46,9 +47,18 @@ class MainWindow(QMainWindow):
         filequit = self.createAction(self.tr("&Quit"), self.controller.quitApplication, "Ctrl+Q", None, self.tr("Close the program"))
 
         viewabout = self.createAction(self.tr("&About..."), self.controller.aboutApp)
+        
+        pointers = []
+        for pointermodule in plugins.pointer:
+            act = self.createAction(pointermodule.name, None, None, None, pointermodule.description, True)
+            if pointermodule.enabledefault:
+                act.setChecked(True)
+            self.connect(act, SIGNAL("triggered()"), lambda p=pointermodule: self.controller.enablePointer(p) if act.isChecked() else self.controller.disablePointer(p))
+            pointers.append(act)
 
         self.addActions(menufile,(filenew,fileopen,fileopenremote,None,filesave,filesaveas,None,fileclose,filequit))
         self.addActions(menuview,(viewabout,))
+        self.addActions(menupointers,pointers)
       
     def createToolbar(self):
         self.toolbar = QToolBar()

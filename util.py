@@ -1,8 +1,5 @@
 import math
 
-
-
-
 # quick and dirty vertex reduction
 def vertexreduce(points, tolerance):
     newpoints = []

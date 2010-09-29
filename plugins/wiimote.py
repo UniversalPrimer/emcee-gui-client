@@ -18,36 +18,18 @@ class pointer(QThread):
 
     def enable(self):
 
-        print "Press 1 & 2 on the Wiimote simultaneously to find it"
+        self.controller.setStatus("Press 1 & 2 on the Wiimote simultaneously to find it")
+        self.connect(self,SIGNAL("setStatus(QString)"), self.controller.setStatus)
 
-        try:
-            self.w = cwiid.Wiimote()
-        except:
-            print "Failed to find Wiimote"
-            return False
-
-        if not self.w:
-            return False
-
+        self.w = None
         self.valid = False
         self.coordinatepool = []
         self.x = 0
         self.y = 0
         self.battery = 0
-
-
-        self.connect(self,SIGNAL("left()"),self.controller.previousSlide)
-        self.connect(self,SIGNAL("right()"),self.controller.nextSlide)
-        self.connect(self,SIGNAL("draw()"),lambda: self.controller.drawing.drawBegin())
-        self.connect(self,SIGNAL("keyup()"),lambda: self.controller.drawing.drawEnd())
-        self.connect(self,SIGNAL("clear()"),lambda: self.controller.drawing.drawClear())
-
-
-        # Set Wii Parameters to get
-        self.w.enable(cwiid.FLAG_MESG_IFC)
-        self.w.rpt_mode = cwiid.RPT_IR | cwiid.RPT_BTN
-        self.finished = False
+        self.alive = False
         self.start()
+       
         return True
 
     def disable(self):
@@ -66,17 +48,43 @@ class pointer(QThread):
     ####
 
     def run(self):
-        while not self.finished:
-            self.usleep(100)
-            messages = self.w.get_mesg() 
-            for mesg in messages:  
-                if mesg[0] == cwiid.MESG_IR: 
-                    self.handle_ir(mesg[1])                  
-                elif mesg[0] == cwiid.MESG_BTN: 
-                    self.handle_key(mesg[1])
+            self.alive = True
+            try:
+                self.w = cwiid.Wiimote()
+            except Exception as e:
+                self.emit(SIGNAL("setStatus(QString)"),QString(str(e)))
+                self.alive = False
 
-            self.battery = self.w.state["battery"]
-        self.w.close()
+            if self.alive:
+                self.connect(self,SIGNAL("left()"),self.controller.previousSlide)
+                self.connect(self,SIGNAL("right()"),self.controller.nextSlide)
+                self.connect(self,SIGNAL("draw()"),lambda: self.controller.drawing.drawBegin())
+                self.connect(self,SIGNAL("keyup()"),lambda: self.controller.drawing.drawEnd())
+                self.connect(self,SIGNAL("clear()"),lambda: self.controller.drawing.drawClear())
+
+
+                # Set Wii Parameters to get
+                self.w.enable(cwiid.FLAG_MESG_IFC)
+                self.w.rpt_mode = cwiid.RPT_IR | cwiid.RPT_BTN
+                self.finished = False
+                self.emit(SIGNAL("setStatus(QString)"),QString("Wiimote connected"))
+
+                while not self.finished:
+                    self.usleep(100)
+                    try:
+                        messages = self.w.get_mesg() 
+                        for mesg in messages:  
+                            if mesg[0] == cwiid.MESG_IR: 
+                                self.handle_ir(mesg[1])                  
+                            elif mesg[0] == cwiid.MESG_BTN: 
+                                self.handle_key(mesg[1])
+
+                        self.battery = self.w.state["battery"]
+                    except Exception:
+                        self.finished = True
+                        pass
+                if self.w:
+                    self.w.close()
         
 
     def handle_ir(self,mesg):
@@ -99,7 +107,7 @@ class pointer(QThread):
             y1 = float(points[0]['pos'][1])/cwiid.IR_Y_MAX
             x2 = float(points[1]['pos'][0])/cwiid.IR_X_MAX
             y2 = float(points[1]['pos'][1])/cwiid.IR_Y_MAX
-
+          
             midx = 1 - ((x1+x2) / 2)
             midy = (y1+y2) / 2
             ang = math.atan2((y1-y2)*0.75,x1-x2)
@@ -166,8 +174,8 @@ class pointer(QThread):
 
 
 plugintype     = 'pointer'
-name           = 'WiiMote'
-description    = 'Bluetooth WiiMote'
+name           = 'Wiimote'
+description    = 'Bluetooth Wiimote'
 capabilities   = ['control','draw','attention','battery']
 enabledefault  = False
 
