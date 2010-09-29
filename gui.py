@@ -320,7 +320,7 @@ class LoadPresentationWidget(QWidget):
 ##########################################################
 # Widget: Metadata for a new presentation
 ##########################################################
-util.douglaspeucker
+
 class NewPresentationWidget(QWidget):
 
     def __init__(self, controller):
