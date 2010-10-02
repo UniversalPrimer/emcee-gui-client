@@ -45,6 +45,11 @@ class pointer(QThread):
         else:
             return None
 
+    def attention(self):
+        self.w.rumble = 1
+        time.sleep(0.5)
+        self.w.rumble = 0
+
     ####
 
     def run(self):
@@ -68,6 +73,7 @@ class pointer(QThread):
                 self.w.rpt_mode = cwiid.RPT_IR | cwiid.RPT_BTN
                 self.finished = False
                 self.emit(SIGNAL("setStatus(QString)"),QString("Wiimote connected"))
+                self.attention()
 
                 while not self.finished:
                     self.usleep(100)

@@ -1,7 +1,16 @@
 # Todo 
-
-- Add editable options for drawing on slides (colors and line thickness)
+- Server features
 - Evaluate Douglas-Peucker vs Vertex reduction
+
+# What is working
+
+Content plugins:
+- PDF
+- Blank slides
+
+Pointer plugins:
+- Standard keyboard and remotes
+- Bluetooth wiimote
 
 # Installation
 

@@ -2,7 +2,9 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
 import plugins
+import time
 import util
+import webbrowser
 
 ##########################################################
 # The Main Window 
@@ -22,7 +24,9 @@ class MainWindow(QMainWindow):
         self.createToolbar()
 
         # start centered and set minimum size  
-        self.center()
+        screen = QDesktopWidget().screenGeometry()
+        size =  self.geometry()
+        self.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
         self.setMinimumSize(QSize(640,480)) 
 
     # menubars, status and toolbars
@@ -35,8 +39,9 @@ class MainWindow(QMainWindow):
 
         self.menu = self.menuBar()
         menufile = self.menu.addMenu(self.tr("&File"))
-        menuview = self.menu.addMenu(self.tr("&View"))
+        menuedit = self.menu.addMenu(self.tr("&Edit"))        
         menupointers = self.menu.addMenu(self.tr("&Pointers"))
+        menuhelp = self.menu.addMenu(self.tr("&Help"))  
 
         filenew = self.createAction(self.tr("&New"), self.controller.newPresentation, QKeySequence.New, None, self.tr("New presentation")) 
         fileopen = self.createAction(self.tr("&Open..."), self.controller.openPresentation, QKeySequence.Open, None, self.tr("Open presentation"))
@@ -46,7 +51,7 @@ class MainWindow(QMainWindow):
         fileclose = self.createAction(self.tr("&Close"), self.controller.closePresentation, QKeySequence.Close, None, self.tr("Close the presentation"))
         filequit = self.createAction(self.tr("&Quit"), self.controller.quitApplication, "Ctrl+Q", None, self.tr("Close the program"))
 
-        viewabout = self.createAction(self.tr("&About..."), self.controller.aboutApp)
+        editpreferences = self.createAction(self.tr("&Preferences..."), lambda: self.controller.prefview.show())  
         
         pointers = []
         for pointermodule in plugins.pointer:
@@ -56,9 +61,13 @@ class MainWindow(QMainWindow):
             self.connect(act, SIGNAL("triggered()"), lambda p=pointermodule: self.controller.enablePointer(p) if act.isChecked() else self.controller.disablePointer(p))
             pointers.append(act)
 
+        helpwww = self.createAction(self.tr("&Website..."), lambda: webbrowser.open_new("http://github.com/UniversalPrimer"))
+        helpabout = self.createAction(self.tr("&About..."), self.controller.aboutApp)
+
         self.addActions(menufile,(filenew,fileopen,fileopenremote,None,filesave,filesaveas,None,fileclose,filequit))
-        self.addActions(menuview,(viewabout,))
+        self.addActions(menuedit,(editpreferences,))
         self.addActions(menupointers,pointers)
+        self.addActions(menuhelp,(helpwww,None,helpabout))
       
     def createToolbar(self):
         self.toolbar = QToolBar()
@@ -101,6 +110,15 @@ class MainWindow(QMainWindow):
         cam = QToolButton()
         cam.setIcon(QIcon("icons/camera-video.svg"))
         cam.setCheckable(True)
+
+        labeltimer = QLabel()
+        labeltimer.setFont(QFont('Sans', 20, QFont.Bold))
+        self.timer = QTimer()
+        self.connect(self.timer,SIGNAL("timeout()"),lambda x=labeltimer: x.setText(time.strftime("%H:%M ")))
+        self.timer.start(1000)
+
+        stretch = QWidget()
+        stretch.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding))
     
         self.toolbar.addWidget(addsource)
         self.toolbar.addSeparator()
@@ -110,6 +128,9 @@ class MainWindow(QMainWindow):
         self.toolbar.addSeparator()
         self.toolbar.addWidget(backbtn)
         self.toolbar.addWidget(forwardbtn)
+        
+        self.toolbar.addWidget(stretch)
+        self.toolbar.addWidget(labeltimer)
         self.addToolBar(self.toolbar)
         
     # helpers
@@ -137,11 +158,6 @@ class MainWindow(QMainWindow):
             else:
                 target.addAction(action)
 
-    def center(self):
-        screen = QDesktopWidget().screenGeometry()
-        size =  self.geometry()
-        self.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
-        
     def setTitle(self, name):
         self.setWindowTitle(QApplication.applicationName() + " - " + name)
 
@@ -236,14 +252,81 @@ class BeamWindow(QWidget):
         else:
             painter.fillRect(0, 0, self.size().width(), self.size().height(), QColor("black"))
 
+##########################################################
+# Window: Preferences
+##########################################################
+
+class PreferencesWindow(QDialog):
+    
+    def __init__(self, controller):
+        QDialog.__init__(self)
+        self.setModal(True)
+
+
+        settings = QSettings()
+        self.serverfield = QLineEdit()
+        self.serverfield.setText(settings.value("server").toString())
+
+        self.pointercolor = ColorButton()
+        self.pointercolor.setColor(QColor(settings.value("pointercolor")))
+
+        self.linecolor = ColorButton()
+        self.linecolor.setColor(QColor(settings.value("linecolor")))
+
+        self.pointersize = QSpinBox()
+        self.pointersize.setValue(settings.value("pointersize").toInt()[0])
+
+        self.linewidth = QSpinBox()
+        self.linewidth.setValue(settings.value("linewidth").toInt()[0])
+        
+        cancelbtn = QPushButton(self.tr("C&ancel"),self)
+        savebtn = QPushButton(self.tr("C&reate"),self)
+        savebtn.setDefault(True)
+
+        formLayout = QFormLayout()
+        formLayout.addRow(self.tr("&Server:"), self.serverfield)
+        formLayout.addRow(self.tr("Pointer &color:"), self.pointercolor)
+        formLayout.addRow(self.tr("Pointer s&ize:"), self.pointersize)
+        formLayout.addRow(self.tr("Line c&olor:"), self.linecolor)
+        formLayout.addRow(self.tr("Line &width:"), self.linewidth)
+
+        buttonLayout = QHBoxLayout()
+        buttonLayout.addStretch(1)
+        buttonLayout.addWidget(cancelbtn)
+        buttonLayout.addWidget(savebtn)
+
+        vbox = QVBoxLayout()
+        vbox.addWidget(QLabel("<b>" + self.tr("Preferences") +  "</b>"))
+        vbox.addLayout(formLayout)
+        vbox.addStretch(1)
+        vbox.addLayout(buttonLayout)
+
+        self.setLayout(vbox)
+        self.connect(savebtn, SIGNAL("clicked()"), self.save)
+        self.connect(cancelbtn, SIGNAL("clicked()"), self.close)
+
+        self.resize(400,300)
+        screen = QDesktopWidget().screenGeometry()
+        size =  self.geometry()        
+        self.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
+        
+
+    def save(self):
+        settings = QSettings()
+        settings.setValue("server",self.serverfield.text())
+        settings.setValue("pointercolor",self.pointercolor.color)
+        settings.setValue("linecolor",self.linecolor.color)
+        settings.setValue("pointersize",self.pointersize.value())
+        settings.setValue("linewidth",self.linewidth.value())
+        self.close()
+
+
 ##############################################################
 # Widget: Overlay widget, showing cursor and drawing
 ##############################################################
 
 class Overlay(QWidget):
  
-    POINTER_RADIUS = 20
-
     def __init__(self, parent = None):
         QWidget.__init__(self, parent)
         palette = QPalette(self.palette())
@@ -252,10 +335,14 @@ class Overlay(QWidget):
         self.x = 0
         self.y = 0
 
+
+        settings = QSettings()
         # Set options another place
-        self.pointercolor = QColor(255, 0, 0)
-        self.linecolor = QColor("black")
-        self.linewidth = 10
+        
+        self.pointercolor = QColor(settings.value("pointercolor"))
+        self.pointersize = settings.value("pointersize").toInt()[0]
+        self.linecolor = QColor(settings.value("linecolor"))
+        self.linewidth = settings.value("linesize").toInt()[0]
 
         self.paths = None
  
@@ -268,7 +355,7 @@ class Overlay(QWidget):
         painter.setBrush(QBrush(self.pointercolor))
 
         if self.x and self.y:
-            painter.drawEllipse(QRectF(self.x-Overlay.POINTER_RADIUS, self.y-Overlay.POINTER_RADIUS, 2*Overlay.POINTER_RADIUS, 2*Overlay.POINTER_RADIUS))
+            painter.drawEllipse(QRectF(self.x-self.pointersize , self.y-self.pointersize , 2*self.pointersize , 2*self.pointersize ))
 
         if self.paths:
             for path in self.paths:
@@ -527,4 +614,32 @@ class SlideWidget(QWidget):
             wl = QHBoxLayout()
             wl.addWidget(self.overlay)
             self.slide.setLayout(wl)
+
+##########################################################
+# Widget: Color Chooser Button
+##########################################################
+
+class ColorButton(QPushButton):
+    
+    def __init__(self):
+        QPushButton.__init__(self)
+        self.setColor(QColor("black"))
+        self.connect(self,SIGNAL("clicked()"),self.choose)
+
+    def setColor(self, color):
+        self.color = color
+        self.update()
+
+    def paintEvent(self, event):
+        super(ColorButton,self).paintEvent(event)
+        painter = QPainter()
+        painter.begin(self)
+        painter.setBrush(QBrush(self.color))
+        painter.drawRect(7,7,self.size().width()-14,self.size().height()-14)
+        painter.end()
+
+    def choose(self):
+        color = QColorDialog.getColor(self.color, self, self.tr("Pick a color"))
+        self.setColor(color)
+
 

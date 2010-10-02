@@ -12,10 +12,10 @@ def vertexreduce(points, tolerance):
             prevpoint = point
     return newpoints
 
+# FROM: http://mappinghacks.com/code/dp.py.txt
 # pure-Python Douglas-Peucker line simplification/generalization
 # this code was written by Schuyler Erle <schuyler@nocat.net> and is
 #   made available in the public domain.
-
 def douglaspeucker(pts, tolerance): 
     anchor  = 0
     floater = len(pts) - 1

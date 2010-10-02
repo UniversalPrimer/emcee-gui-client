@@ -11,13 +11,15 @@ class Controller(QObject):
     
     def __init__(self):
         QObject.__init__(self)
-
+        self.loadDefaultSettings()
         self.screens = ScreenController()
         self.mainview = gui.MainWindow(self)
         self.beamview = gui.BeamWindow(self)
+        self.prefview = gui.PreferencesWindow(self)
         self.presentation = None
         self.currentslide = None
         self.nextslide = None
+        
 
         # setup the main window
         self.mainview.setCentralWidget(gui.LoadPresentationWidget(self))
@@ -61,6 +63,16 @@ class Controller(QObject):
 
     def setStatus(self,message):
         self.mainview.status.showMessage(message)
+
+    def loadDefaultSettings(self):
+        settings = QSettings()
+        defaults = {"pointercolor": QColor(255, 0, 0),
+                    "pointersize": 20,
+                    "linecolor": QColor(0,0,0),
+                    "linewidth": 10,
+                    }
+        for (k,v) in defaults.items(): 
+            settings.setValue(k,settings.value(k,v))
 
     # presentations
     def newPresentation(self):
@@ -180,6 +192,7 @@ class ScreenController():
         self.desktop = QDesktopWidget()
         self.geometry = []
         primary = self.desktop.screenGeometry(self.desktop.primaryScreen()).topLeft()
+
         for i in range(0,self.desktop.numScreens()):
             self.geometry.append(self.desktop.screenGeometry(i).topLeft()-primary)
 

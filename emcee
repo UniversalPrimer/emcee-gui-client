@@ -15,6 +15,7 @@ __version__ = "0a"
 
 app = QApplication(sys.argv)
 app.setApplicationVersion(__version__)
+app.setOrganizationName("tupp")
 app.setApplicationName("emcee")
 control = controller.Controller()
 control.start()
