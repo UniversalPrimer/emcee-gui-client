@@ -1,0 +1,64 @@
+--- pypoppler-qt4-hacked/poppler-qt4.sip	2010-10-03 19:25:09.633023511 +0200
++++ pypoppler-qt4/poppler-qt4.sip	2008-11-04 10:21:35.000000000 +0100
+@@ -18,33 +18,8 @@
+ */
+ namespace Poppler {
+ 
+-class LinkDestination {
+-%TypeHeaderCode
+-#define UNSTABLE_POPPLER_QT4 1
+-#include <qt4/poppler-qt4.h>
+-#include <qt4/poppler-link.h>
+-%End
+ 
+-public:
+-        LinkDestination(const QString &description);
+-        enum Kind
+-        {
+-            destXYZ = 1,
+-            destFit = 2,
+-            destFitH = 3,
+-            destFitV = 4,
+-            destFitR = 5,
+-            destFitB = 6,
+-            destFitBH = 7,
+-            destFitBV = 8
+-        };
+-        Kind kind() const;
+-        int pageNumber() const;
+-        double left() const;
+-        double bottom() const;
+-        double right() const;
+-        double top() const;
+-};
++
+ 
+ class TextBox {
+ 
+@@ -139,8 +114,6 @@
+     bool search(const QString &text, QRectF &rect, SearchDirection direction, SearchMode caseSensitive) const;
+ 
+     QList<Poppler::TextBox*> textList() const;
+-    
+-    QString label() const;
+ 
+     QSizeF pageSizeF() const;
+ 
+@@ -172,8 +145,6 @@
+     Page( const Poppler::Page & );
+ };
+ 
+-
+-
+ class Document {
+ %TypeHeaderCode
+ #define UNSTABLE_POPPLER_QT4 1
+@@ -268,7 +239,7 @@
+ 
+     QDomDocument *toc() const;
+     
+-     Poppler::LinkDestination *linkDestination( const QString &name );
++//     LinkDestination *linkDestination( const QString &name );
+     
+ //     bool print(const QString &fileName, const QList<int> pageList, double hDPI, double vDPI, int rotate);
+     

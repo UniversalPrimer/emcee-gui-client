@@ -54,6 +54,9 @@ class container:
             
     def getName(self,index=0):
         return "Blank"
+        
+    def getIdentifier(self):
+        return "*BLANKSLIDE"
 
 
 plugintype = 'content' 

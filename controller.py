@@ -17,9 +17,7 @@ class Controller(QObject):
         self.beamview = gui.BeamWindow(self)
         self.prefview = gui.PreferencesWindow(self)
         self.presentation = None
-        self.currentslide = None
-        self.nextslide = None
-        
+        self.currentslide = None        
 
         # setup the main window
         self.mainview.setCentralWidget(gui.LoadPresentationWidget(self))
@@ -118,7 +116,7 @@ class Controller(QObject):
 
     def createPresentation(self,title,name,email,forclass,organization):
         p = presentation.Presentation()
-        p.title = str(title)
+        p.title = str(title) if len(title) else str(p.title)
         p.name = str(name)
         p.email = str(email)
         p.forclass = str(forclass)
@@ -172,6 +170,13 @@ class Controller(QObject):
 
     # broadcast
     def startBroadcast(self):
+        c = APEClient('apel.grafiki.org', 6969, "test", callback=cb)
+        c.connect()
+        raw_input()
+        c.send('{"type": "chat/public-msg", "msg": "Hello world", "nickname": "fuukkuuu"}')
+        raw_input()
+        c.close()
+
         print "NYI: Start broadcast"
 
     def endBroadcast(self):

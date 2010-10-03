@@ -68,11 +68,20 @@ class container:
     def __init__(self,pdffile):
 
         self.filename = os.path.basename(pdffile)
+        
+        f=open(pdffile)
+        d=f.read()
+        f.close()
+        
+        self.identifier = hashlib.md5(d).hexdigest()
+        
         self.document = QtPoppler.Poppler.Document.load(pdffile)
         self.document.setRenderHint(QtPoppler.Poppler.Document.Antialiasing and QtPoppler.Poppler.Document.TextAntialiasing)
         self.numslides = self.document.numPages()
         size = self.document.page(0).pageSize()
         self.cache = {}
+        
+        self.namemap = self.parseToc(self.document.toc().firstChild())
 
     def numSlides(self):
         return self.numslides
@@ -84,7 +93,34 @@ class container:
             raise IndexError()
             
     def getName(self,index=0):
-        return self.filename + " slide " + str(index+1)
+        if self.namemap.has_key(index+1):
+            return self.namemap[index+1]
+        else:
+            return self.filename + " slide " + str(index+1)
+        
+    def getIdentifier(self):
+        return self.identifier
+        
+    def parseToc(self, toc, hashmap={}):
+        if not toc.isNull():
+            name = str(toc.nodeName())
+            
+            dest = toc.attributes().namedItem("DestinationName")
+            if not dest.isNull():
+                page = self.document.linkDestination(dest.nodeValue()).pageNumber()
+                hashmap[page] = name
+                
+            dest = toc.attributes().namedItem("Destination")
+            if not dest.isNull():
+                pages = dest.nodeValue().split(";")
+                page = int(pages[1])
+                hashmap[page] = name
+                
+            self.parseToc(toc.firstChild(),hashmap)
+            self.parseToc(toc.nextSibling(),hashmap)
+            return hashmap
+
+        
 
 
 plugintype = 'content'

@@ -85,7 +85,7 @@ class MainWindow(QMainWindow):
             plugin = plugins.mimehandlers[mimetype]
             action = QAction(self)
             action.setText(plugin.name)
-            self.connect(action,SIGNAL("triggered()"),lambda: self.controller.addSlide(mimetype))
+            self.connect(action,SIGNAL("triggered()"),lambda x=mimetype: self.controller.addSlide(x))
             addsourcemenu.addAction(action)
 
         addsource.setMenu(addsourcemenu)
@@ -150,7 +150,6 @@ class MainWindow(QMainWindow):
             action.setCheckable(True)
         return action
 
-
     def addActions(self, target, actions):
         for action in actions:
             if action is None:
@@ -187,7 +186,7 @@ class BeamWindow(QWidget):
         self.setMinimumSize(QSize(400,300))
         layout.addWidget(self.slide,0,0)
         self.setLayout(layout)
-        self.showFullScreen()     
+        #self.showFullScreen()     
         self.connect(self.controller,SIGNAL("updateSlides()"),self.updateSlideView) 
         self.testcard = True
         self.setWindowTitle(self.tr("Projector Display"))
@@ -640,6 +639,7 @@ class ColorButton(QPushButton):
 
     def choose(self):
         color = QColorDialog.getColor(self.color, self, self.tr("Pick a color"))
+        print color
         self.setColor(color)
 
 

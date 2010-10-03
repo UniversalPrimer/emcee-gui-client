@@ -84,10 +84,10 @@ class Presentation(QObject):
 
     def suggestedFileName(self):
         if len(self.title)  > 0:
-            self.title = unicodedata.normalize('NFKD', unicode(self.title)).encode('ascii', 'ignore')
-            self.title = unicode(re.sub('[^\w\s-]', '', self.title).strip().lower())
-            self.title = re.sub('[-\s]+', '-', self.title)
-            return str(self.title)
+            x = unicodedata.normalize('NFKD', unicode(self.title)).encode('ascii', 'ignore')
+            x = unicode(re.sub('[^\w\s-]', '', x).strip().lower())
+            x = re.sub('[-\s]+', '-', x)
+            return str(x)
         else:
             return self.tr("untitled")
 
@@ -102,7 +102,7 @@ class Presentation(QObject):
 
         for slide in self.slides:
             sources[slide.source.identifier()] = {"reference": slide.source.reference, "mimetype": slide.source.mimetype}
-            slides.append({"index": slide.index, "source": slide.source.identifier()})
+            slides.append({"index": slide.index, "name": slide.getTitle(), "source": slide.source.identifier()})
 
         return json.dumps({"metadata": metadata, "slides": slides, "sources": sources})
         
@@ -127,8 +127,7 @@ class Source:
         return Slide(self,index)
         
     def identifier(self):
-        return hashlib.sha1(self.reference + "***" + self.mimetype).hexdigest().upper()
-
+        return self.container.getIdentifier()
 
      
 class Slide:
