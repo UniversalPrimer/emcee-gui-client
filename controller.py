@@ -170,12 +170,12 @@ class Controller(QObject):
 
     # broadcast
     def startBroadcast(self):
-        c = APEClient('apel.grafiki.org', 6969, "test", callback=cb)
-        c.connect()
-        raw_input()
-        c.send('{"type": "chat/public-msg", "msg": "Hello world", "nickname": "fuukkuuu"}')
-        raw_input()
-        c.close()
+       # c = APEClient('apel.grafiki.org', 6969, "test", callback=cb)
+       # c.connect()
+       # raw_input()
+       # c.send('{"type": "chat/public-msg", "msg": "Hello world", "nickname": "fuukkuuu"}')
+       # raw_input()
+       # c.close()
 
         print "NYI: Start broadcast"
 
