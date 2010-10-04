@@ -6,9 +6,9 @@ import time
 import util
 import webbrowser
 
-##########################################################
+###################################################
 # The Main Window 
-##########################################################
+###################################################
 
 class MainWindow(QMainWindow):
 
@@ -169,9 +169,9 @@ class MainWindow(QMainWindow):
         else:
             event.ignore()
 
-##########################################################
+###################################################
 # Window: Beam View, the presentation for a projector
-##########################################################
+###################################################
 
 class BeamWindow(QWidget):
 
@@ -250,9 +250,9 @@ class BeamWindow(QWidget):
         else:
             painter.fillRect(0, 0, self.size().width(), self.size().height(), QColor("black"))
 
-##########################################################
+###################################################
 # Window: Preferences
-##########################################################
+###################################################
 
 class PreferencesWindow(QDialog):
     
@@ -319,9 +319,9 @@ class PreferencesWindow(QDialog):
         self.close()
 
 
-##############################################################
+#######################################################
 # Widget: Overlay widget, showing cursor and drawing
-##############################################################
+#######################################################
 
 class Overlay(QWidget):
  
@@ -365,10 +365,10 @@ class Overlay(QWidget):
         
     
 
-##########################################################
+###################################################
 # Widget: Loading a presentation (for application startup
 #         and if the current presentation was closed)
-##########################################################
+###################################################
 
 class LoadPresentationWidget(QWidget):
 
@@ -412,9 +412,9 @@ class LoadPresentationWidget(QWidget):
         self.connect(loadnewbtn, SIGNAL("clicked()"), self.controller.newPresentation)
 
 
-##########################################################
+###################################################
 # Widget: Metadata for a new presentation
-##########################################################
+###################################################
 
 class NewPresentationWidget(QWidget):
 
@@ -459,9 +459,9 @@ class NewPresentationWidget(QWidget):
     def create(self):
         self.controller.createPresentation(self.titlefield.text(),self.namefield.text(),self.emailfield.text(),self.classfield.currentText(),self.orgfield.currentText())
 
-##########################################################
+###################################################
 # Widget: The presenter display
-##########################################################
+###################################################
 
 class PresentationWidget(QWidget):
 
@@ -529,10 +529,10 @@ class PresentationWidget(QWidget):
 
 
 
-##########################################################
+###################################################
 # Widget: A QListWidget that you can drag and 
 #         drop items in
-##########################################################
+###################################################
 
 class DragDropListWidget(QListWidget):
     def __init__(self, controller):
@@ -586,9 +586,9 @@ class DragDropListWidget(QListWidget):
     def setrow(self,i):
         self.setCurrentRow(i)
 
-##########################################################
+###################################################
 # Widget: Slide View Widget
-##########################################################
+###################################################
        
 class SlideWidget(QWidget):
 
@@ -614,9 +614,9 @@ class SlideWidget(QWidget):
             wl.addWidget(self.overlay)
             self.slide.setLayout(wl)
 
-##########################################################
+###################################################
 # Widget: Color Chooser Button
-##########################################################
+###################################################
 
 class ColorButton(QPushButton):
     

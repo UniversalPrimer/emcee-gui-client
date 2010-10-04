@@ -42,7 +42,7 @@ class Controller(QObject):
     def start(self): 
         if self.screens.countScreens() > 1:
             self.screens.moveToScreen(1,self.beamview)
-            self.showFullScreen()
+            #self.beamview.showFullScreen()
         self.beamview.show()
         self.mainview.show()
 
