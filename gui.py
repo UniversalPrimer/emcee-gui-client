@@ -185,8 +185,7 @@ class BeamWindow(QWidget):
         self.slide.layout.setMargin(0)
         self.setMinimumSize(QSize(400,300))
         layout.addWidget(self.slide,0,0)
-        self.setLayout(layout)
-        #self.showFullScreen()     
+        self.setLayout(layout)     
         self.connect(self.controller,SIGNAL("updateSlides()"),self.updateSlideView) 
         self.testcard = True
         self.setWindowTitle(self.tr("Projector Display"))
@@ -487,6 +486,7 @@ class PresentationWidget(QWidget):
         chatlayout = QVBoxLayout()
         chatfield = QLineEdit()
         chatview = QTextEdit()
+        chatview.setReadOnly(True)
         chatlayout.addWidget(chatview)
         chatlayout.addWidget(chatfield)
         chatwidget.setLayout(chatlayout)

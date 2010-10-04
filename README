@@ -1,5 +1,6 @@
 # Todo 
-- Server features
+- Server interaction features
+- Setup broadcast of video and audio
 - Evaluate Douglas-Peucker vs Vertex reduction
 
 # What is working
@@ -28,7 +29,10 @@ sip4
 Get pypoppler from:
 http://pyqt4-extrawidgets.googlecode.com/files/pypoppler-qt4-20962-fixed.tar.gz
 
+copy pypoppler-qt4.patch to the directory where you extracted the source
+
 Install using: 
+patch -R -p1 -i pypoppler-qt4.patch
 python configure.py
 make
 sudo make install

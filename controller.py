@@ -6,6 +6,8 @@ import os
 import presentation
 import plugins
 import util
+import ape
+import json
 
 class Controller(QObject):
     
@@ -16,6 +18,7 @@ class Controller(QObject):
         self.mainview = gui.MainWindow(self)
         self.beamview = gui.BeamWindow(self)
         self.prefview = gui.PreferencesWindow(self)
+        self.bcconnection = None
         self.presentation = None
         self.currentslide = None        
 
@@ -32,14 +35,15 @@ class Controller(QObject):
             if pointerplugin.enabledefault:
                 self.enablePointer(pointerplugin)
 
-        self.drawing = DrawingController(self.drawingpointers,self.beamview)   
+        self.drawing = DrawingController(self.drawingpointers,self.beamview,self)   
 
 
     # application
     def start(self): 
         if self.screens.countScreens() > 1:
             self.screens.moveToScreen(1,self.beamview)
-            self.beamview.show()
+            self.showFullScreen()
+        self.beamview.show()
         self.mainview.show()
 
     def quitApplication(self):        
@@ -57,7 +61,7 @@ class Controller(QObject):
             return False
 
     def aboutApp(self):
-        QMessageBox.about(self.mainview, self.tr("emcee"),self.tr("emcee by Christian Panton 2010\n\nQt version: %s\nPyQt version: %s\nApplication version: %s" % (QT_VERSION_STR, PYQT_VERSION_STR, QApplication.applicationVersion())))
+        QMessageBox.about(self.mainview, self.tr("emcee"),self.tr("emcee\n\nQt version: %s\nPyQt version: %s\nApplication version: %s" % (QT_VERSION_STR, PYQT_VERSION_STR, QApplication.applicationVersion())))
 
     def setStatus(self,message):
         self.mainview.status.showMessage(message)
@@ -155,6 +159,10 @@ class Controller(QObject):
             self.currentslide = self.presentation.defaultSlide
         self.emit(SIGNAL("updateSlides()"))
         self.drawing.drawClear()
+        
+        if self.bcconnection:
+            jvar = json.dumps({"type": "slides/change", "identifier": self.currentslide.source.identifier(), "index":  self.presentation.currentindex})
+            self.bcconnection.send(jvar)
 
     def setNextSlide(self, index):
         if index >= 0 and index < len(self.presentation.slides):
@@ -166,21 +174,34 @@ class Controller(QObject):
 
     # chat
     def chatSend(self,chat):
-        self.emit(SIGNAL("chatRecieved(QString)"),chat)
+        if len(self.presentation.name):
+            who = self.presentation.name
+        else:
+            who = "Teacher"
+            
+        if self.bcconnection:
+            self.bcconnection.send(json.dumps({"type": "chat/public-msg", "msg": unicode(chat), "nickname": unicode(who)}))
+            self.emit(SIGNAL("chatRecieved(QString)"),"<b>%s</b>: %s" % (who,chat))
+        else:
+            self.emit(SIGNAL("chatRecieved(QString)"),"<i>Not connected</i>" )
+        
+    # ape
+    def apeRecieved(self,obj,var):
+        jvar = json.loads(var)
+        if jvar["type"] == "chat/public-msg":
+             self.emit(SIGNAL("chatRecieved(QString)"),"<b>%s</b>: %s" % (jvar["nickname"],jvar["msg"]))
+        
 
     # broadcast
     def startBroadcast(self):
-       # c = APEClient('apel.grafiki.org', 6969, "test", callback=cb)
-       # c.connect()
-       # raw_input()
-       # c.send('{"type": "chat/public-msg", "msg": "Hello world", "nickname": "fuukkuuu"}')
-       # raw_input()
-       # c.close()
-
-        print "NYI: Start broadcast"
+       settings = QSettings()
+       self.bcconnection = ape.APEClient(str(settings.value("server").toString()), 6969, self.presentation.suggestedFileName(), callback=self.apeRecieved)
+       self.bcconnection.connect()
 
     def endBroadcast(self):
-        print "NYI: End broadcast"
+        if self.bcconnection:
+            self.bcconnection.close()
+            self.bcconnection = None
 
     # pointers
     def enablePointer(self,pointerplugin):
@@ -209,10 +230,11 @@ class ScreenController():
 
 class DrawingController(QThread):
     
-    def __init__(self,pointers,beamview):
+    def __init__(self,pointers,beamview,controller):
         QThread.__init__(self)
         self.pointers = pointers
         self.beamview = beamview
+        self.controller = controller
         self.drawing = False
         self.points = []
         self.current = -1
@@ -227,11 +249,15 @@ class DrawingController(QThread):
     def drawEnd(self):
         if self.drawing:
             self.drawing = False
+            if self.controller.bcconnection:
+                self.controller.bcconnection.send(json.dumps({"type": "draw/lines", "lines": self.points}))
 
     def drawClear(self):
         self.points = []
         self.current = -1
         self.beamview.update()
+        if self.controller.bcconnection:
+            self.controller.bcconnection.send(json.dumps({"type": "draw/clear"}))
 
     def run(self):
         while True:
@@ -242,14 +268,17 @@ class DrawingController(QThread):
                     if xy:
                         if self.drawing:
                             self.points[self.current].append((xy[0],xy[1]))
+                            
                         self.beamview.setPointer(xy[0],xy[1])
+                            
                         pointerset = True
                         break
 
                 if not pointerset:
                     self.beamview.clearPointer()
-
+                        
                 self.beamview.setPaths(self.points)
+
 
                 self.msleep(33)
             else:
