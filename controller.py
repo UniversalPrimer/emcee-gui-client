@@ -7,7 +7,9 @@ import presentation
 import plugins
 import util
 import ape
+import pushy
 import json
+import cuecumber
 
 class Controller(QObject):
     
@@ -18,6 +20,7 @@ class Controller(QObject):
         self.mainview = gui.MainWindow(self)
         self.beamview = gui.BeamWindow(self)
         self.prefview = gui.PreferencesWindow(self)
+        self.streamStarted = False
         self.bcconnection = None
         self.presentation = None
         self.currentslide = None        
@@ -160,9 +163,11 @@ class Controller(QObject):
         self.emit(SIGNAL("updateSlides()"))
         self.drawing.drawClear()
         
+        if self.streamStarted:
+            cuecumber.cuepointInject({"type": "slides/change", "identifier": self.currentslide.source.identifier(), "index":  self.presentation.currentindex})
+
         if self.bcconnection:
-            jvar = json.dumps({"type": "slides/change", "identifier": self.currentslide.source.identifier(), "index":  self.presentation.currentindex})
-            self.bcconnection.send(jvar)
+            self.bcconnection.send({"type": "slides/change", "identifier": self.currentslide.source.identifier(), "index":  self.presentation.currentindex})
 
     def setNextSlide(self, index):
         if index >= 0 and index < len(self.presentation.slides):
@@ -180,25 +185,38 @@ class Controller(QObject):
             who = "Teacher"
             
         if self.bcconnection:
-            self.bcconnection.send(json.dumps({"type": "chat/public-msg", "msg": unicode(chat), "nickname": unicode(who)}))
+            self.bcconnection.send({"type": "chat/public-msg", "msg": unicode(chat), "nickname": unicode(who)})
             self.emit(SIGNAL("chatRecieved(QString)"),"<b>%s</b>: %s" % (who,chat))
         else:
             self.emit(SIGNAL("chatRecieved(QString)"),"<i>Not connected</i>" )
-        
+
+# XXX        
     # ape
-    def apeRecieved(self,obj,var):
-        jvar = json.loads(var)
-        if jvar["type"] == "chat/public-msg":
-             self.emit(SIGNAL("chatRecieved(QString)"),"<b>%s</b>: %s" % (jvar["nickname"],jvar["msg"]))
+#    def apeRecieved(self,obj,var):
+#        jvar = json.loads(var)
+#        if jvar["type"] == "chat/public-msg":
+#             self.emit(SIGNAL("chatRecieved(QString)"),"<b>%s</b>: %s" % (jvar["nickname"],jvar["msg"]))
         
+    def pushyRecieved(self,obj,var):
+        print "Received: " + str(var)
 
     # broadcast
     def startBroadcast(self):
        settings = QSettings()
-       self.bcconnection = ape.APEClient(str(settings.value("server").toString()), 6969, self.presentation.suggestedFileName(), callback=self.apeRecieved)
-       self.bcconnection.connect()
 
+       # TODO re-instate the comet connection
+       # it connects but doesn't send correctly 
+       # (it needs to nest the json as the .msg of another json string, and include the session_id)
+       # (we actually don't need session_ids to be sent for a raw connection)
+#       self.bcconnection = pushy.PushyClient('pushyl.uprimer.org', 4000, 'stream', callback=self.pushyRecieved)
+#       self.bcconnection.connect()
+
+       self.streamStarted = True
+
+       cuecumber.startStream()
+       
     def endBroadcast(self):
+        cuecumber.stopStream()
         if self.bcconnection:
             self.bcconnection.close()
             self.bcconnection = None
@@ -250,14 +268,14 @@ class DrawingController(QThread):
         if self.drawing:
             self.drawing = False
             if self.controller.bcconnection:
-                self.controller.bcconnection.send(json.dumps({"type": "draw/lines", "lines": self.points}))
+                self.controller.bcconnection.send({"type": "draw/lines", "lines": self.points})
 
     def drawClear(self):
         self.points = []
         self.current = -1
         self.beamview.update()
         if self.controller.bcconnection:
-            self.controller.bcconnection.send(json.dumps({"type": "draw/clear"}))
+            self.controller.bcconnection.send({"type": "draw/clear"})
 
     def run(self):
         while True:

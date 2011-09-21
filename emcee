@@ -1,24 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/bin/sh
 
-# core library
-import sys
-
-# addon libraries
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-
-# local imports
-import controller
-
-__version__ = "0a"
-
-app = QApplication(sys.argv)
-app.setApplicationVersion(__version__)
-app.setOrganizationName("tupp")
-app.setApplicationName("emcee")
-control = controller.Controller()
-control.start()
-
-sys.exit(app.exec_())
-# if it segfaults, blame the bindings, fixed in 4.7.4 i hope
+LD_LIBRARY_PATH=. python emceepy

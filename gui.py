@@ -389,7 +389,7 @@ class LoadPresentationWidget(QWidget):
         loadserverbtn.setFlat(True)
 
         loadnewbtn = QPushButton()        
-        loadnewbtn.setStatusTip("New file")
+        loadnewbtn.setStatusTip("New Presentation")
         loadnewbtn.setIcon(QIcon("icons/document-new.svg"))
         loadnewbtn.setIconSize(QSize(64,64))
         loadnewbtn.setFlat(True)
